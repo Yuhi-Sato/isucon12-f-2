@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"math/rand"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/exec"
 	"strconv"
@@ -50,6 +52,10 @@ type Handler struct {
 }
 
 func main() {
+	go func() {
+		log.Fatal(http.ListenAndServe(":6060", nil))
+	}()
+
 	rand.Seed(time.Now().UnixNano())
 	time.Local = time.FixedZone("Local", 9*60*60)
 
@@ -624,6 +630,11 @@ func initialize(c echo.Context) error {
 		c.Logger().Errorf("Failed to initialize %s: %v", string(out), err)
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
+
+	cmd := exec.Command("make", "pprof-record")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Start()
 
 	return successResponse(c, &InitializeResponse{
 		Language: "go",

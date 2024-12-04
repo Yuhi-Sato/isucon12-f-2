@@ -4,5 +4,18 @@ reverse: true                   # boolean
 query_string: true              # boolean
 output: count,5xx,4xx,3xx,method,uri,min,max,sum,avg,p99                    # string(comma separated)
 
-# matching_groups:            # array
-# -  
+matching_groups:            # array
+- ^/user/\d+/gacha/index$
+- ^/user/\d+/gacha/draw/\d+/\d+$
+- ^/user/\d+/present/index/\d+$
+- ^/user/\d+/present/receive$
+- ^/user/\d+/item$
+- ^/user/\d+/card/addexp/\d+$
+- ^/user/\d+/card$
+- ^/user/\d+/reward$
+- ^/user/\d+/home$
+- ^/admin/login$
+- ^/admin/logout$
+- ^/admin/master$
+- ^/admin/user/\d+$
+- ^/admin/user/\d+/ban$
