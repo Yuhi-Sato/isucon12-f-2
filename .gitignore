@@ -1,0 +1,15 @@
+*/**/2_init.sql
+*/**/4_alldata_exclude_user_presents.sql
+*/**/5_user_presents_not_receive_data.tsv
+php
+java
+node
+nodejs
+python
+ruby
+perl
+rust
+/sql/setup/2_init.sql
+/sql/4_alldata_exclude_user_pres
+/tool-config/alp/notify-slack.toml
+/tool-config/slow-query/notify-slack.toml
