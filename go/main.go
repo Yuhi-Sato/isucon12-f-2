@@ -443,17 +443,38 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		return nil, err
 	}
 
+	presentAllIDs := make([]int64, 0, len(normalPresents))
+	for _, np := range normalPresents {
+		presentAllIDs = append(presentAllIDs, np.ID)
+	}
+
+	notReceivedPresents := make([]*UserPresentAllReceivedHistory, 0)
+	query = "SELECT id FROM user_present_all_received_history WHERE user_id=? AND present_all_id IN (?)"
+	query, args, _ := sqlx.In(query, userID, presentAllIDs)
+	query = tx.Rebind(query)
+	if err := tx.Select(&notReceivedPresents, query, args...); err != nil {
+		return nil, err
+	}
+	receivedByPresentAllID := make(map[int64]int64, len(notReceivedPresents))
+	for _, np := range notReceivedPresents {
+		receivedByPresentAllID[np.PresentAllID] = np.ID
+	}
+
 	obtainPresents := make([]*UserPresent, 0)
 	for _, np := range normalPresents {
-		received := new(UserPresentAllReceivedHistory)
-		query = "SELECT * FROM user_present_all_received_history WHERE user_id=? AND present_all_id=?"
-		err := tx.Get(received, query, userID, np.ID)
-		if err == nil {
-			// プレゼント配布済
+		// received := new(UserPresentAllReceivedHistory)
+		// query = "SELECT * FROM user_present_all_received_history WHERE user_id=? AND present_all_id=?"
+		// err := tx.Get(received, query, userID, np.ID)
+		// if err == nil {
+		// 	// プレゼント配布済
+		// 	continue
+		// }
+		// if err != sql.ErrNoRows {
+		// 	return nil, err
+		// }
+
+		if _, ok := receivedByPresentAllID[np.ID]; ok {
 			continue
-		}
-		if err != sql.ErrNoRows {
-			return nil, err
 		}
 
 		pID, err := h.generateID()
