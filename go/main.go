@@ -487,7 +487,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		userPresents = append(userPresents, up)
 	}
 
-	query = "INSERT INTO user_presents(:id, :user_id, :sent_at, :item_type, :item_id, :amount, :present_message, :created_at, :updated_at) VALUES (?)"
+	query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES (:id, :user_id, :sent_at, :item_type, :item_id, :amount, :present_message, :created_at, :updated_at)"
 	if _, err := tx.NamedExec(query, userPresents); err != nil {
 		return nil, err
 	}
