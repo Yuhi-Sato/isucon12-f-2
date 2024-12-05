@@ -41,7 +41,6 @@ var (
 	ErrForbidden                error = fmt.Errorf("forbidden")
 	ErrGeneratePassword         error = fmt.Errorf("failed to password hash") //nolint:deadcode
 	itemMasterByID              sync.Map
-	initCard                    *ItemMaster
 )
 
 const (
@@ -698,15 +697,6 @@ func initialize(c echo.Context) error {
 		itemMasterByID.Store(item.ID, item)
 	}
 
-	initCard = new(ItemMaster)
-	query := "SELECT * FROM item_masters WHERE id=?"
-	if err = dbx.Get(initCard, query, 2); err != nil {
-		if err == sql.ErrNoRows {
-			return errorResponse(c, http.StatusNotFound, ErrItemNotFound)
-		}
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
-
 	cmd := exec.Command("make", "pprof-record")
 	cmd.Dir = "../"
 	cmd.Stdout = os.Stdout
@@ -784,14 +774,14 @@ func (h *Handler) createUser(c echo.Context) error {
 	}
 
 	// 初期デッキ付与
-	// initCard := new(ItemMaster)
-	// query = "SELECT * FROM item_masters WHERE id=?"
-	// if err = tx.Get(initCard, query, 2); err != nil {
-	// 	if err == sql.ErrNoRows {
-	// 		return errorResponse(c, http.StatusNotFound, ErrItemNotFound)
-	// 	}
-	// 	return errorResponse(c, http.StatusInternalServerError, err)
-	// }
+	initCard := new(ItemMaster)
+	query = "SELECT * FROM item_masters WHERE id=?"
+	if err = tx.Get(initCard, query, 2); err != nil {
+		if err == sql.ErrNoRows {
+			return errorResponse(c, http.StatusNotFound, ErrItemNotFound)
+		}
+		return errorResponse(c, http.StatusInternalServerError, err)
+	}
 
 	initCards := make([]*UserCard, 0, 3)
 	for i := 0; i < 3; i++ {
