@@ -448,15 +448,15 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		presentAllIDs = append(presentAllIDs, np.ID)
 	}
 
-	notReceivedPresents := make([]*UserPresentAllReceivedHistory, 0)
+	receivedPresents := make([]*UserPresentAllReceivedHistory, 0)
 	query = "SELECT id FROM user_present_all_received_history WHERE user_id=? AND present_all_id IN (?)"
 	query, args, _ := sqlx.In(query, userID, presentAllIDs)
 	query = tx.Rebind(query)
-	if err := tx.Select(&notReceivedPresents, query, args...); err != nil {
+	if err := tx.Select(&receivedPresents, query, args...); err != nil {
 		return nil, err
 	}
-	receivedByPresentAllID := make(map[int64]int64, len(notReceivedPresents))
-	for _, np := range notReceivedPresents {
+	receivedByPresentAllID := make(map[int64]int64, len(receivedPresents))
+	for _, np := range receivedPresents {
 		receivedByPresentAllID[np.PresentAllID] = np.ID
 	}
 
