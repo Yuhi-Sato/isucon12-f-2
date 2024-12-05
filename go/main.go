@@ -449,7 +449,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	}
 
 	receivedPresents := make([]*UserPresentAllReceivedHistory, 0)
-	query = "SELECT id FROM user_present_all_received_history WHERE user_id=? AND present_all_id IN (?)"
+	query = "SELECT present_all_id FROM user_present_all_received_history WHERE user_id=? AND present_all_id IN (?)"
 	query, args, _ := sqlx.In(query, userID, presentAllIDs)
 	query = tx.Rebind(query)
 	if err := tx.Select(&receivedPresents, query, args...); err != nil {
@@ -457,7 +457,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	}
 	receivedByPresentAllID := make(map[int64]int64, len(receivedPresents))
 	for _, np := range receivedPresents {
-		receivedByPresentAllID[np.ID] = np.ID
+		receivedByPresentAllID[np.PresentAllID] = np.ID
 	}
 
 	obtainPresents := make([]*UserPresent, 0)
