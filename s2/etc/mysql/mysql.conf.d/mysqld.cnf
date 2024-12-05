@@ -12,6 +12,7 @@
 # The following values assume you have at least 32M ram
 
 [mysqld]
+transaction_isolation = READ-COMMITTED
 #
 # * Basic Settings
 #
