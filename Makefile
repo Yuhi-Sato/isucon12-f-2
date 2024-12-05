@@ -183,7 +183,7 @@ deploy-nginx-conf:
 
 .PHONY: deploy-envsh
 deploy-envsh:
-	cp $(SERVER_ID)/env.sh ~/env.sh
+	cp $(SERVER_ID)/env.sh ~/env
 
 .PHONY: build
 build:
