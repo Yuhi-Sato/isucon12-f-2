@@ -698,7 +698,7 @@ func initialize(c echo.Context) error {
 		itemMasterByID.Store(item.ID, item)
 	}
 
-	initCard := new(ItemMaster)
+	initCard = new(ItemMaster)
 	query := "SELECT * FROM item_masters WHERE id=?"
 	if err = dbx.Get(initCard, query, 2); err != nil {
 		if err == sql.ErrNoRows {
