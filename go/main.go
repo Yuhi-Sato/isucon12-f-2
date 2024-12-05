@@ -462,7 +462,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		receivedByPresentAllID[np.PresentAllID] = np.ID
 	}
 
-	notReceivedNormalPresents := make([]*PresentAllMaster, 0, len(normalPresents))
+	notReceivedNormalPresents := make([]*PresentAllMaster, 0)
 	for _, np := range normalPresents {
 		if _, ok := receivedByPresentAllID[np.ID]; !ok {
 			notReceivedNormalPresents = append(notReceivedNormalPresents, np)
@@ -475,7 +475,8 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		if err != nil {
 			return nil, err
 		}
-		up := &UserPresent{
+
+		userPresents = append(userPresents, &UserPresent{
 			ID:             pID,
 			UserID:         userID,
 			SentAt:         requestAt,
@@ -485,43 +486,36 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			PresentMessage: np.PresentMessage,
 			CreatedAt:      requestAt,
 			UpdatedAt:      requestAt,
-		}
-		userPresents = append(userPresents, up)
+		})
 	}
 
 	query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES (:id, :user_id, :sent_at, :item_type, :item_id, :amount, :present_message, :created_at, :updated_at)"
-	if _, err := tx.NamedExec(query, userPresents); err != nil && len(userPresents) > 0 {
+	_, err := tx.NamedExec(query, userPresents)
+	if err != nil && len(userPresents) > 0 {
 		return nil, err
 	}
 
 	obtainPresents := make([]*UserPresent, 0)
 	for i, np := range notReceivedNormalPresents {
-		// received := new(UserPresentAllReceivedHistory)
-		// query = "SELECT * FROM user_present_all_received_history WHERE user_id=? AND present_all_id=?"
-		// err := tx.Get(received, query, userID, np.ID)
-		// if err == nil {
-		// 	// プレゼント配布済
+		// if _, ok := receivedByPresentAllID[np.ID]; ok {
 		// 	continue
-		// }
-		// if err != sql.ErrNoRows {
-		// 	return nil, err
 		// }
 
 		// pID, err := h.generateID()
 		// if err != nil {
 		// 	return nil, err
 		// }
-		// up := &UserPresent{
-		// 	ID:             pID,
-		// 	UserID:         userID,
-		// 	SentAt:         requestAt,
-		// 	ItemType:       np.ItemType,
-		// 	ItemID:         np.ItemID,
-		// 	Amount:         int(np.Amount),
-		// 	PresentMessage: np.PresentMessage,
-		// 	CreatedAt:      requestAt,
-		// 	UpdatedAt:      requestAt,
-		// }
+		up := &UserPresent{
+			ID:             userPresents[i].ID,
+			UserID:         userID,
+			SentAt:         requestAt,
+			ItemType:       np.ItemType,
+			ItemID:         np.ItemID,
+			Amount:         int(np.Amount),
+			PresentMessage: np.PresentMessage,
+			CreatedAt:      requestAt,
+			UpdatedAt:      requestAt,
+		}
 		// query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
 		// if _, err := tx.Exec(query, up.ID, up.UserID, up.SentAt, up.ItemType, up.ItemID, up.Amount, up.PresentMessage, up.CreatedAt, up.UpdatedAt); err != nil {
 		// 	return nil, err
@@ -552,7 +546,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			return nil, err
 		}
 
-		obtainPresents = append(obtainPresents, userPresents[i])
+		obtainPresents = append(obtainPresents, up)
 	}
 
 	return obtainPresents, nil
@@ -1385,11 +1379,6 @@ func (h *Handler) receivePresent(c echo.Context) error {
 		obtainPresent[i].UpdatedAt = requestAt
 		obtainPresent[i].DeletedAt = &requestAt
 		v := obtainPresent[i]
-		// query = "UPDATE user_presents SET deleted_at=?, updated_at=? WHERE id=?"
-		// _, err := tx.Exec(query, requestAt, requestAt, v.ID)
-		// if err != nil {
-		// 	return errorResponse(c, http.StatusInternalServerError, err)
-		// }
 
 		_, _, _, err = h.obtainItem(tx, v.UserID, v.ItemID, v.ItemType, int64(v.Amount), requestAt)
 		if err != nil {
