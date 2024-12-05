@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"sync"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -39,6 +40,7 @@ var (
 	ErrUnauthorized             error = fmt.Errorf("unauthorized user")
 	ErrForbidden                error = fmt.Errorf("forbidden")
 	ErrGeneratePassword         error = fmt.Errorf("failed to password hash") //nolint:deadcode
+	itemMasterByID              sync.Map
 )
 
 const (
@@ -581,13 +583,19 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 		obtainCoins = append(obtainCoins, obtainAmount)
 
 	case 2: // card(ハンマー)
-		query := "SELECT * FROM item_masters WHERE id=? AND item_type=?"
 		item := new(ItemMaster)
-		if err := tx.Get(item, query, itemID, itemType); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil, nil, ErrItemNotFound
+		if v, ok := itemMasterByID.Load(itemID); ok {
+			item = v.(*ItemMaster)
+		} else {
+			query := "SELECT * FROM item_masters WHERE id=?"
+			if err := tx.Get(item, query, itemID); err != nil {
+				if err == sql.ErrNoRows {
+					return nil, nil, nil, ErrItemNotFound
+				}
+				return nil, nil, nil, err
 			}
-			return nil, nil, nil, err
+
+			itemMasterByID.Store(item.ID, item)
 		}
 
 		cID, err := h.generateID()
@@ -604,23 +612,29 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 			CreatedAt:    requestAt,
 			UpdatedAt:    requestAt,
 		}
-		query = "INSERT INTO user_cards(id, user_id, card_id, amount_per_sec, level, total_exp, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+		query := "INSERT INTO user_cards(id, user_id, card_id, amount_per_sec, level, total_exp, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
 		if _, err := tx.Exec(query, card.ID, card.UserID, card.CardID, card.AmountPerSec, card.Level, card.TotalExp, card.CreatedAt, card.UpdatedAt); err != nil {
 			return nil, nil, nil, err
 		}
 		obtainCards = append(obtainCards, card)
 
 	case 3, 4: // 強化素材
-		query := "SELECT * FROM item_masters WHERE id=? AND item_type=?"
 		item := new(ItemMaster)
-		if err := tx.Get(item, query, itemID, itemType); err != nil {
-			if err == sql.ErrNoRows {
-				return nil, nil, nil, ErrItemNotFound
+		if v, ok := itemMasterByID.Load(itemID); ok {
+			item = v.(*ItemMaster)
+		} else {
+			query := "SELECT * FROM item_masters WHERE id=?"
+			if err := tx.Get(item, query, itemID); err != nil {
+				if err == sql.ErrNoRows {
+					return nil, nil, nil, ErrItemNotFound
+				}
+				return nil, nil, nil, err
 			}
-			return nil, nil, nil, err
+
+			itemMasterByID.Store(item.ID, item)
 		}
 
-		query = "SELECT * FROM user_items WHERE user_id=? AND item_id=?"
+		query := "SELECT * FROM user_items WHERE user_id=? AND item_id=?"
 		uitem := new(UserItem)
 		if err := tx.Get(uitem, query, userID, item.ID); err != nil {
 			if err != sql.ErrNoRows {
@@ -679,6 +693,14 @@ func initialize(c echo.Context) error {
 	if err != nil {
 		c.Logger().Errorf("Failed to initialize %s: %v", string(out), err)
 		return errorResponse(c, http.StatusInternalServerError, err)
+	}
+
+	itemMasters := make([]*ItemMaster, 0)
+	if err := dbx.Select(&itemMasters, "SELECT * FROM item_masters"); err != nil {
+		return errorResponse(c, http.StatusInternalServerError, err)
+	}
+	for _, item := range itemMasters {
+		itemMasterByID.Store(item.ID, item)
 	}
 
 	cmd := exec.Command("make", "pprof-record")
