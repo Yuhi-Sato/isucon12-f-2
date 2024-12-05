@@ -633,6 +633,7 @@ func initialize(c echo.Context) error {
 	}
 
 	cmd := exec.Command("make", "pprof-record")
+	cmd.Dir = "../"
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Start()
