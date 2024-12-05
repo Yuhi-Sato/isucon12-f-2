@@ -467,13 +467,13 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		}
 	}
 
-	userPresents := make([]UserPresent, 0)
+	userPresents := make([]*UserPresent, 0)
 	for _, np := range notReceivedNormalPresents {
 		pID, err := h.generateID()
 		if err != nil {
 			return nil, err
 		}
-		up := UserPresent{
+		up := &UserPresent{
 			ID:             pID,
 			UserID:         userID,
 			SentAt:         requestAt,
@@ -488,7 +488,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	}
 
 	query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES (:id, :user_id, :sent_at, :item_type, :item_id, :amount, :present_message, :created_at, :updated_at)"
-	if _, err := tx.NamedExec(query, userPresents); err != nil {
+	if _, err := tx.NamedExec(query, userPresents); err != nil && len(userPresents) > 0 {
 		return nil, err
 	}
 
@@ -550,7 +550,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			return nil, err
 		}
 
-		obtainPresents = append(obtainPresents, &userPresents[i])
+		obtainPresents = append(obtainPresents, userPresents[i])
 	}
 
 	return obtainPresents, nil
