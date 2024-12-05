@@ -460,20 +460,20 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		receivedByPresentAllID[np.PresentAllID] = np.ID
 	}
 
-	filteredNormalPresents := make([]*PresentAllMaster, 0, len(normalPresents))
+	notReceivedNormalPresents := make([]*PresentAllMaster, 0, len(normalPresents))
 	for _, np := range normalPresents {
 		if _, ok := receivedByPresentAllID[np.ID]; !ok {
-			filteredNormalPresents = append(filteredNormalPresents, np)
+			notReceivedNormalPresents = append(notReceivedNormalPresents, np)
 		}
 	}
 
-	userPresents := make([]*UserPresent, 0)
-	for _, np := range filteredNormalPresents {
+	userPresents := make([]UserPresent, 0)
+	for _, np := range notReceivedNormalPresents {
 		pID, err := h.generateID()
 		if err != nil {
 			return nil, err
 		}
-		up := &UserPresent{
+		up := UserPresent{
 			ID:             pID,
 			UserID:         userID,
 			SentAt:         requestAt,
@@ -493,7 +493,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	}
 
 	obtainPresents := make([]*UserPresent, 0)
-	for i, np := range filteredNormalPresents {
+	for i, np := range notReceivedNormalPresents {
 		// received := new(UserPresentAllReceivedHistory)
 		// query = "SELECT * FROM user_present_all_received_history WHERE user_id=? AND present_all_id=?"
 		// err := tx.Get(received, query, userID, np.ID)
@@ -550,7 +550,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			return nil, err
 		}
 
-		obtainPresents = append(obtainPresents, userPresents[i])
+		obtainPresents = append(obtainPresents, &userPresents[i])
 	}
 
 	return obtainPresents, nil
