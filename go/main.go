@@ -457,7 +457,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	}
 	receivedByPresentAllID := make(map[int64]int64, len(receivedPresents))
 	for _, np := range receivedPresents {
-		receivedByPresentAllID[np.PresentAllID] = np.ID
+		receivedByPresentAllID[np.ID] = np.ID
 	}
 
 	obtainPresents := make([]*UserPresent, 0)
