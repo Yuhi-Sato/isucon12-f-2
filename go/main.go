@@ -460,23 +460,15 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		receivedByPresentAllID[np.PresentAllID] = np.ID
 	}
 
-	obtainPresents := make([]*UserPresent, 0)
+	filteredNormalPresents := make([]*PresentAllMaster, 0, len(normalPresents))
 	for _, np := range normalPresents {
-		// received := new(UserPresentAllReceivedHistory)
-		// query = "SELECT * FROM user_present_all_received_history WHERE user_id=? AND present_all_id=?"
-		// err := tx.Get(received, query, userID, np.ID)
-		// if err == nil {
-		// 	// プレゼント配布済
-		// 	continue
-		// }
-		// if err != sql.ErrNoRows {
-		// 	return nil, err
-		// }
-
-		if _, ok := receivedByPresentAllID[np.ID]; ok {
-			continue
+		if _, ok := receivedByPresentAllID[np.ID]; !ok {
+			filteredNormalPresents = append(filteredNormalPresents, np)
 		}
+	}
 
+	userPresents := make([]*UserPresent, 0)
+	for _, np := range filteredNormalPresents {
 		pID, err := h.generateID()
 		if err != nil {
 			return nil, err
@@ -492,10 +484,46 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			CreatedAt:      requestAt,
 			UpdatedAt:      requestAt,
 		}
-		query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-		if _, err := tx.Exec(query, up.ID, up.UserID, up.SentAt, up.ItemType, up.ItemID, up.Amount, up.PresentMessage, up.CreatedAt, up.UpdatedAt); err != nil {
-			return nil, err
-		}
+		userPresents = append(userPresents, up)
+	}
+
+	query = "INSERT INTO user_presents(:id, :user_id, :sent_at, :item_type, :item_id, :amount, :present_message, :created_at, :updated_at) VALUES (?)"
+	if _, err := tx.NamedExec(query, userPresents); err != nil {
+		return nil, err
+	}
+
+	obtainPresents := make([]*UserPresent, 0)
+	for i, np := range filteredNormalPresents {
+		// received := new(UserPresentAllReceivedHistory)
+		// query = "SELECT * FROM user_present_all_received_history WHERE user_id=? AND present_all_id=?"
+		// err := tx.Get(received, query, userID, np.ID)
+		// if err == nil {
+		// 	// プレゼント配布済
+		// 	continue
+		// }
+		// if err != sql.ErrNoRows {
+		// 	return nil, err
+		// }
+
+		// pID, err := h.generateID()
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// up := &UserPresent{
+		// 	ID:             pID,
+		// 	UserID:         userID,
+		// 	SentAt:         requestAt,
+		// 	ItemType:       np.ItemType,
+		// 	ItemID:         np.ItemID,
+		// 	Amount:         int(np.Amount),
+		// 	PresentMessage: np.PresentMessage,
+		// 	CreatedAt:      requestAt,
+		// 	UpdatedAt:      requestAt,
+		// }
+		// query = "INSERT INTO user_presents(id, user_id, sent_at, item_type, item_id, amount, present_message, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		// if _, err := tx.Exec(query, up.ID, up.UserID, up.SentAt, up.ItemType, up.ItemID, up.Amount, up.PresentMessage, up.CreatedAt, up.UpdatedAt); err != nil {
+		// 	return nil, err
+		// }
 
 		phID, err := h.generateID()
 		if err != nil {
@@ -522,7 +550,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 			return nil, err
 		}
 
-		obtainPresents = append(obtainPresents, up)
+		obtainPresents = append(obtainPresents, userPresents[i])
 	}
 
 	return obtainPresents, nil
