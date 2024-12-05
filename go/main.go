@@ -133,8 +133,8 @@ func connectDB(batch bool) (*sqlx.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	dbx.SetMaxOpenConns(100)
-	dbx.SetMaxIdleConns(100)
+	dbx.SetMaxOpenConns(1000)
+	dbx.SetMaxIdleConns(1000)
 
 	return dbx, nil
 }
