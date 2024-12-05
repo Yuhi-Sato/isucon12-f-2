@@ -41,6 +41,7 @@ var (
 	ErrForbidden                error = fmt.Errorf("forbidden")
 	ErrGeneratePassword         error = fmt.Errorf("failed to password hash") //nolint:deadcode
 	itemMasterByID              sync.Map
+	initialDeck                 ItemMaster
 )
 
 const (
@@ -697,6 +698,10 @@ func initialize(c echo.Context) error {
 		itemMasterByID.Store(item.ID, item)
 	}
 
+	if v, ok := itemMasterByID.Load(2); ok {
+		initialDeck = *v.(*ItemMaster)
+	}
+
 	cmd := exec.Command("make", "pprof-record")
 	cmd.Dir = "../"
 	cmd.Stdout = os.Stdout
@@ -774,14 +779,15 @@ func (h *Handler) createUser(c echo.Context) error {
 	}
 
 	// 初期デッキ付与
-	initCard := new(ItemMaster)
-	query = "SELECT * FROM item_masters WHERE id=?"
-	if err = tx.Get(initCard, query, 2); err != nil {
-		if err == sql.ErrNoRows {
-			return errorResponse(c, http.StatusNotFound, ErrItemNotFound)
-		}
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
+	// initCard := new(ItemMaster)
+	// query = "SELECT * FROM item_masters WHERE id=?"
+	// if err = tx.Get(initCard, query, 2); err != nil {
+	// 	if err == sql.ErrNoRows {
+	// 		return errorResponse(c, http.StatusNotFound, ErrItemNotFound)
+	// 	}
+	// 	return errorResponse(c, http.StatusInternalServerError, err)
+	// }
+	initCard := initialDeck
 
 	initCards := make([]*UserCard, 0, 3)
 	for i := 0; i < 3; i++ {
@@ -953,7 +959,6 @@ func (h *Handler) login(c echo.Context) error {
 	if _, err = tx.Exec(query, sess.ID, sess.UserID, sess.SessionID, sess.CreatedAt, sess.UpdatedAt, sess.ExpiredAt); err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
-
 	// 同日にすでにログインしているユーザはログイン処理をしない
 	if isCompleteTodayLogin(time.Unix(user.LastActivatedAt, 0), time.Unix(requestAt, 0)) {
 		user.UpdatedAt = requestAt
