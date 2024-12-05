@@ -169,6 +169,7 @@ CREATE TABLE `user_items` (
   PRIMARY KEY (`id`),
   INDEX userid_idx (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
+ALTER TABLE `user_items` ADD INDEX idx_user_id_item_id(`user_id`, `item_id`);
 
 CREATE TABLE `user_cards` (
   `id` bigint NOT NULL,
