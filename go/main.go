@@ -41,7 +41,7 @@ var (
 	ErrForbidden                error = fmt.Errorf("forbidden")
 	ErrGeneratePassword         error = fmt.Errorf("failed to password hash") //nolint:deadcode
 	itemMasterByID              sync.Map
-	initialDeck                 ItemMaster
+	initCard                    *ItemMaster
 )
 
 const (
@@ -698,8 +698,13 @@ func initialize(c echo.Context) error {
 		itemMasterByID.Store(item.ID, item)
 	}
 
-	if v, ok := itemMasterByID.Load(2); ok {
-		initialDeck = *v.(*ItemMaster)
+	initCard := new(ItemMaster)
+	query := "SELECT * FROM item_masters WHERE id=?"
+	if err = dbx.Get(initCard, query, 2); err != nil {
+		if err == sql.ErrNoRows {
+			return errorResponse(c, http.StatusNotFound, ErrItemNotFound)
+		}
+		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 
 	cmd := exec.Command("make", "pprof-record")
@@ -787,7 +792,6 @@ func (h *Handler) createUser(c echo.Context) error {
 	// 	}
 	// 	return errorResponse(c, http.StatusInternalServerError, err)
 	// }
-	initCard := initialDeck
 
 	initCards := make([]*UserCard, 0, 3)
 	for i := 0; i < 3; i++ {
