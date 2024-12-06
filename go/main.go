@@ -41,7 +41,7 @@ var (
 	ErrForbidden                error = fmt.Errorf("forbidden")
 	ErrGeneratePassword         error = fmt.Errorf("failed to password hash") //nolint:deadcode
 	itemMasterByID              sync.Map
-	dbHosts                     = []string{"52.194.37.96", "35.79.6.218"}
+	dbHosts                     = []string{"52.194.37.96", "35.79.6.218", "3.112.193.65", "18.183.146.81"}
 )
 
 const (
