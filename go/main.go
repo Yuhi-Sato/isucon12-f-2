@@ -41,7 +41,7 @@ var (
 	ErrForbidden                error = fmt.Errorf("forbidden")
 	ErrGeneratePassword         error = fmt.Errorf("failed to password hash") //nolint:deadcode
 	itemMasterByID              sync.Map
-	shardHosts                  = []string{"52.194.37.96", "35.79.6.218"}
+	dbHosts                     = []string{"52.194.37.96", "35.79.6.218"}
 )
 
 const (
@@ -49,8 +49,6 @@ const (
 	PresentCountPerPage int = 100
 
 	SQLDirectory string = "../sql/"
-
-	shardCount int = 2
 )
 
 type Handler struct {
@@ -73,7 +71,7 @@ func NewShardedDBs(shardCount int) ([]*sqlx.DB, error) {
 }
 
 func (h *Handler) GetDB(userID int64) *sqlx.DB {
-	shardIndex := int(userID) % shardCount
+	shardIndex := int(userID) % len(dbHosts)
 
 	return h.ShardedDBs[shardIndex]
 }
@@ -95,7 +93,7 @@ func main() {
 		AllowHeaders: []string{"Content-Type", "x-master-version", "x-session"},
 	}))
 
-	dbs, err := NewShardedDBs(shardCount)
+	dbs, err := NewShardedDBs(len(dbHosts))
 	if err != nil {
 		log.Print(err)
 	}
@@ -150,7 +148,7 @@ func connectDB(batch bool, shardIndex int) (*sqlx.DB, error) {
 		"%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=true&loc=%s&multiStatements=%t&interpolateParams=true",
 		getEnv("ISUCON_DB_USER", "isucon"),
 		getEnv("ISUCON_DB_PASSWORD", "isucon"),
-		shardHosts[shardIndex],
+		dbHosts[shardIndex],
 		getEnv("ISUCON_DB_PORT", "3306"),
 		getEnv("ISUCON_DB_NAME", "isucon"),
 		"Asia%2FTokyo",
