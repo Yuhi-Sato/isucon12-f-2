@@ -740,7 +740,7 @@ func initialize(c echo.Context) error {
 	}
 
 	itemMasters := make([]*ItemMaster, 0)
-	if err := dbx.Select(itemMasters, "SELECT * FROM item_masters"); err != nil {
+	if err := dbx.Select(&itemMasters, "SELECT * FROM item_masters"); err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	for _, item := range itemMasters {
@@ -748,7 +748,7 @@ func initialize(c echo.Context) error {
 	}
 
 	userItems := make([]*UserItem, 0)
-	if err := dbx.Select(userItems, "SELECT * FROM user_items"); err != nil {
+	if err := dbx.Select(&userItems, "SELECT * FROM user_items"); err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	for _, ui := range userItems {
