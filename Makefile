@@ -159,6 +159,20 @@ set-as-s3:
 	echo "SERVER_ID=s3" >> s3/env.sh
 	echo "SERVER_ID=s3" >> ~/env.sh
 
+.PHONY: set-as-s4
+set-as-s4:
+	mkdir -p s4/etc/mysql s4/etc/nginx
+	cp -R /home/isucon/env.sh s4/env.sh
+	echo "SERVER_ID=s4" >> s4/env.sh
+	echo "SERVER_ID=s4" >> ~/env.sh
+
+.PHONY: set-as-s5
+set-as-s5:
+	mkdir -p s5/etc/mysql s5/etc/nginx
+	cp -R /home/isucon/env.sh s5/env.sh
+	echo "SERVER_ID=s5" >> s5/env.sh
+	echo "SERVER_ID=s5" >> ~/env.sh
+
 .PHONY: get-db-conf
 get-db-conf:
 	sudo cp -R $(DB_PATH)/* $(SERVER_ID)/etc/mysql
