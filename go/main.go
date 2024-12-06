@@ -42,6 +42,7 @@ var (
 	ErrGeneratePassword         error = fmt.Errorf("failed to password hash") //nolint:deadcode
 	itemMasterByID              sync.Map
 	dbHosts                     = []string{"52.194.37.96", "35.79.6.218", "3.112.193.65", "18.183.146.81"}
+	userItemByUserIDItemID      sync.Map
 )
 
 const (
@@ -522,6 +523,29 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		return nil, err
 	}
 
+	userPresentAllReceivedHistories := make([]*UserPresentAllReceivedHistory, len(notReceivedNormalPresents))
+	for _, np := range notReceivedNormalPresents {
+		phID, err := h.generateID()
+		if err != nil {
+			return nil, err
+		}
+		history := &UserPresentAllReceivedHistory{
+			ID:           phID,
+			UserID:       userID,
+			PresentAllID: np.ID,
+			ReceivedAt:   requestAt,
+			CreatedAt:    requestAt,
+			UpdatedAt:    requestAt,
+		}
+
+		userPresentAllReceivedHistories = append(userPresentAllReceivedHistories, history)
+	}
+
+	query = "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES (:id, :user_id, :present_all_id, :received_at, :created_at, :updated_at)"
+	if _, err = tx.Exec(query, userPresentAllReceivedHistories); err != nil {
+		return nil, err
+	}
+
 	obtainPresents := make([]*UserPresent, 0)
 	for i, np := range notReceivedNormalPresents {
 		// if _, ok := receivedByPresentAllID[np.ID]; ok {
@@ -548,30 +572,30 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		// 	return nil, err
 		// }
 
-		phID, err := h.generateID()
-		if err != nil {
-			return nil, err
-		}
-		history := &UserPresentAllReceivedHistory{
-			ID:           phID,
-			UserID:       userID,
-			PresentAllID: np.ID,
-			ReceivedAt:   requestAt,
-			CreatedAt:    requestAt,
-			UpdatedAt:    requestAt,
-		}
-		query = "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
-		if _, err := tx.Exec(
-			query,
-			history.ID,
-			history.UserID,
-			history.PresentAllID,
-			history.ReceivedAt,
-			history.CreatedAt,
-			history.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
+		// phID, err := h.generateID()
+		// if err != nil {
+		// 	return nil, err
+		// }
+		// history := &UserPresentAllReceivedHistory{
+		// 	ID:           phID,
+		// 	UserID:       userID,
+		// 	PresentAllID: np.ID,
+		// 	ReceivedAt:   requestAt,
+		// 	CreatedAt:    requestAt,
+		// 	UpdatedAt:    requestAt,
+		// }
+		// query = "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)"
+		// if _, err := tx.Exec(
+		// 	query,
+		// 	history.ID,
+		// 	history.UserID,
+		// 	history.PresentAllID,
+		// 	history.ReceivedAt,
+		// 	history.CreatedAt,
+		// 	history.UpdatedAt,
+		// ); err != nil {
+		// 	return nil, err
+		// }
 
 		obtainPresents = append(obtainPresents, up)
 	}
@@ -655,13 +679,20 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 			itemMasterByID.Store(item.ID, item)
 		}
 
-		query := "SELECT * FROM user_items WHERE user_id=? AND item_id=?"
 		uitem := new(UserItem)
-		if err := tx.Get(uitem, query, userID, item.ID); err != nil {
-			if err != sql.ErrNoRows {
-				return nil, nil, nil, err
+		key := fmt.Sprintf("%d_%s", userID, item.ID)
+		if v, ok := userItemByUserIDItemID.Load(key); ok {
+			uitem = v.(*UserItem)
+		} else {
+			query := "SELECT * FROM user_items WHERE user_id=? AND item_id=?"
+			if err := tx.Get(uitem, query, userID, item.ID); err != nil {
+				if err != sql.ErrNoRows {
+					return nil, nil, nil, err
+				}
+				uitem = nil
 			}
-			uitem = nil
+
+			userItemByUserIDItemID.Store(key, uitem)
 		}
 
 		if uitem == nil {
@@ -678,7 +709,7 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 				CreatedAt: requestAt,
 				UpdatedAt: requestAt,
 			}
-			query = "INSERT INTO user_items(id, user_id, item_id, item_type, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+			query := "INSERT INTO user_items(id, user_id, item_id, item_type, amount, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
 			if _, err := tx.Exec(query, uitem.ID, userID, uitem.ItemID, uitem.ItemType, uitem.Amount, requestAt, requestAt); err != nil {
 				return nil, nil, nil, err
 			}
@@ -686,10 +717,12 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 		} else {
 			uitem.Amount += int(obtainAmount)
 			uitem.UpdatedAt = requestAt
-			query = "UPDATE user_items SET amount=?, updated_at=? WHERE id=?"
+			query := "UPDATE user_items SET amount=?, updated_at=? WHERE id=?"
 			if _, err := tx.Exec(query, uitem.Amount, uitem.UpdatedAt, uitem.ID); err != nil {
 				return nil, nil, nil, err
 			}
+
+			userItemByUserIDItemID.Delete(key)
 		}
 
 		obtainItems = append(obtainItems, uitem)
@@ -717,11 +750,20 @@ func initialize(c echo.Context) error {
 	}
 
 	itemMasters := make([]*ItemMaster, 0)
-	if err := dbx.Select(&itemMasters, "SELECT * FROM item_masters"); err != nil {
+	if err := dbx.Select(itemMasters, "SELECT * FROM item_masters"); err != nil {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	for _, item := range itemMasters {
 		itemMasterByID.Store(item.ID, item)
+	}
+
+	userItems := make([]*UserItem, 0)
+	if err := dbx.Select(userItems, "SELECT * FROM user_items"); err != nil {
+		return errorResponse(c, http.StatusInternalServerError, err)
+	}
+	for _, ui := range userItems {
+		key := fmt.Sprintf("%d_%s", ui.UserID, ui.ItemID)
+		userItemByUserIDItemID.Store(key, ui)
 	}
 
 	cmd := exec.Command("make", "pprof-record")
@@ -1657,6 +1699,9 @@ func (h *Handler) addExpToCard(c echo.Context) error {
 		if _, err = tx.Exec(query, v.Amount-v.ConsumeAmount, requestAt, v.ID); err != nil {
 			return errorResponse(c, http.StatusInternalServerError, err)
 		}
+
+		key := fmt.Sprintf("%d_%s", userID, v.ID)
+		userItemByUserIDItemID.Delete(key)
 	}
 
 	resultCard := new(UserCard)
