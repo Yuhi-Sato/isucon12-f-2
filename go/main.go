@@ -544,7 +544,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	}
 
 	query = "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES (:id, :user_id, :present_all_id, :received_at, :created_at, :updated_at)"
-	if _, err = tx.Exec(query, userPresentAllReceivedHistories); err != nil {
+	if _, err = tx.NamedExec(query, userPresentAllReceivedHistories); err != nil {
 		return nil, err
 	}
 
