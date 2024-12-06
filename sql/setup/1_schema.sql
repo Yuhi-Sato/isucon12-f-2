@@ -197,7 +197,6 @@ CREATE TABLE `user_cards` (
   `updated_at`bigint NOT NULL,
   `deleted_at` bigint default NULL,
   PRIMARY KEY (`id`),
-  UNIQUE uniq_card_id (`user_id`, `card_id`, `deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 /*　アイテムマスタ、カードマスタ */
