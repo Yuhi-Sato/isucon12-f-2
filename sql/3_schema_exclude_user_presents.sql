@@ -221,7 +221,7 @@ CREATE TABLE `user_sessions` (
   PRIMARY KEY (`id`),
   UNIQUE uniq_session_id (`user_id`, `session_id`, `deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
-ALTER TABLE user_sessions ADD INDEX idx_session_id_deleted_at(`session_id`, `deleted_id`);
+ALTER TABLE user_sessions ADD INDEX idx_session_id_deleted_at(`session_id`, `deleted_at`);
 
 /* 更新処理について利用するone time tokenの管理 */
 CREATE TABLE `user_one_time_tokens` (
