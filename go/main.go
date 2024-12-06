@@ -525,7 +525,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 		return nil, err
 	}
 
-	userPresentAllReceivedHistories := make([]*UserPresentAllReceivedHistory, len(notReceivedNormalPresents))
+	userPresentAllReceivedHistories := make([]*UserPresentAllReceivedHistory, 0)
 	for _, np := range notReceivedNormalPresents {
 		phID, err := h.generateID()
 		if err != nil {
@@ -544,7 +544,7 @@ func (h *Handler) obtainPresent(tx *sqlx.Tx, userID int64, requestAt int64) ([]*
 	}
 
 	query = "INSERT INTO user_present_all_received_history(id, user_id, present_all_id, received_at, created_at, updated_at) VALUES (:id, :user_id, :present_all_id, :received_at, :created_at, :updated_at)"
-	if _, err = tx.NamedExec(query, userPresentAllReceivedHistories); err != nil {
+	if _, err = tx.NamedExec(query, userPresentAllReceivedHistories); err != nil && len(userPresentAllReceivedHistories) > 0 {
 		return nil, err
 	}
 
@@ -670,7 +670,7 @@ func (h *Handler) obtainItem(tx *sqlx.Tx, userID, itemID int64, itemType int, ob
 		}
 
 		uitem := new(UserItem)
-		key := fmt.Sprintf("%d_%s", userID, item.ID)
+		key := fmt.Sprintf("%d_%d", userID, item.ID)
 		if v, ok := userItemByUserIDItemID.Load(key); ok {
 			uitem = v.(*UserItem)
 		} else {
@@ -752,7 +752,7 @@ func initialize(c echo.Context) error {
 		return errorResponse(c, http.StatusInternalServerError, err)
 	}
 	for _, ui := range userItems {
-		key := fmt.Sprintf("%d_%s", ui.UserID, ui.ItemID)
+		key := fmt.Sprintf("%d_%d", ui.UserID, ui.ItemID)
 		userItemByUserIDItemID.Store(key, ui)
 	}
 
@@ -1669,7 +1669,7 @@ func (h *Handler) addExpToCard(c echo.Context) error {
 			return errorResponse(c, http.StatusInternalServerError, err)
 		}
 
-		key := fmt.Sprintf("%d_%s", userID, v.ID)
+		key := fmt.Sprintf("%d_%d", userID, v.ID)
 		userItemByUserIDItemID.Delete(key)
 	}
 
