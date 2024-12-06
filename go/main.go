@@ -158,8 +158,8 @@ func connectDB(batch bool, shardIndex int) (*sqlx.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	dbx.SetMaxOpenConns(1000)
-	dbx.SetMaxIdleConns(1000)
+	dbx.SetMaxOpenConns(500)
+	dbx.SetMaxIdleConns(500)
 
 	return dbx, nil
 }
