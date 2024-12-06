@@ -733,11 +733,11 @@ func initialize(c echo.Context) error {
 	}
 	defer dbx.Close()
 
-	out, err := exec.Command("/bin/sh", "-c", SQLDirectory+"init.sh").CombinedOutput()
-	if err != nil {
-		c.Logger().Errorf("Failed to initialize %s: %v", string(out), err)
-		return errorResponse(c, http.StatusInternalServerError, err)
-	}
+	// out, err := exec.Command("/bin/sh", "-c", SQLDirectory+"init.sh").CombinedOutput()
+	// if err != nil {
+	// 	c.Logger().Errorf("Failed to initialize %s: %v", string(out), err)
+	// 	return errorResponse(c, http.StatusInternalServerError, err)
+	// }
 
 	itemMasters := make([]*ItemMaster, 0)
 	if err := dbx.Select(&itemMasters, "SELECT * FROM item_masters"); err != nil {
